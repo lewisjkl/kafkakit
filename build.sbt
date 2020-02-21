@@ -1,0 +1,53 @@
+inThisBuild(
+  List(
+    organization := "com.lewisjkl",
+    homepage := Some(url("https://github.com/lewisjkl/kafkakit")),
+    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    developers := List(
+      Developer(
+        "lewisjkl",
+        "Jeff Lewis",
+        "lewisjkl@me.com",
+        url("https://lewisjkl.com")
+      )
+    )
+  )
+)
+
+val libraries = List(
+  "com.monovore" %% "decline-effect" % "1.0.0",
+  "com.github.fd4s" %% "fs2-kafka" % "1.0.0",
+  "org.typelevel" %% "cats-mtl-core" % "0.7.0",
+  "dev.profunktor" %% "console4cats" % "0.8.1"
+)
+
+def crossPlugin(x: sbt.librarymanagement.ModuleID) = compilerPlugin(x.cross(CrossVersion.full))
+
+val compilerPlugins = List(
+  compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+  crossPlugin("org.typelevel" %% "kind-projector" % "0.11.0"),
+  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.1")
+)
+
+val commonSettings = Seq(
+  scalaVersion := "2.13.1",
+  scalacOptions -= "-Xfatal-warnings",
+  scalacOptions ++= Seq(
+    "-Ymacro-annotations",
+    "-Yimports:" ++ List(
+      "scala",
+      "scala.Predef",
+      "cats",
+      "cats.implicits",
+      "cats.effect",
+      "cats.effect.implicits",
+      "cats.effect.concurrent"
+    ).mkString(",")
+  ),
+  name := "kafkakit",
+  updateOptions := updateOptions.value.withGigahorse(false),
+  libraryDependencies ++= libraries ++ compilerPlugins
+)
+
+val kafkakit =
+  project.in(file(".")).settings(commonSettings).enablePlugins(JavaAppPackaging)
