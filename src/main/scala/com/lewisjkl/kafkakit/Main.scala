@@ -19,7 +19,7 @@ object Choice {
       Opts.subcommand("read", "Read data from Kafka")(Opts(Read)),
       Opts.subcommand("write", "Write data to Kafka")(Opts(Write)),
       Opts.subcommand("list", "List topics in Kafka")(Opts(ListTopics))
-    ).reduceK //TODO: Learn about reduceK
+    ).reduceK
 }
 
 object Main extends CommandIOApp(

@@ -17,7 +17,7 @@ object KafkaClient {
   def live[F[_]: Concurrent: ContextShift]: F[KafkaClient[F]] = Sync[F].delay {
     new KafkaClient[F] {
       override def listTopics: F[Set[TopicName]] = adminClientResource(AdminClientSettings[F]
-        .withBootstrapServers("kafka1-broker-staging.vnerd.com:9092")).use { client =>
+        .withBootstrapServers("")).use { client =>
         client.listTopics.names
       }
     }
