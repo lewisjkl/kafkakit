@@ -1,6 +1,5 @@
 package com.lewisjkl.kafkakit
 
-import cats.effect._
 import fs2.kafka._
 
 trait KafkaClient[F[_]] {

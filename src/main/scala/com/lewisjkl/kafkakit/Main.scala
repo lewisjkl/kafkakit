@@ -1,8 +1,6 @@
 package com.lewisjkl.kafkakit
 
 import cats.data.NonEmptyList
-import cats.effect._
-import cats.implicits._
 import com.monovore.decline._
 import com.monovore.decline.effect._
 import cats.effect.Console.implicits._

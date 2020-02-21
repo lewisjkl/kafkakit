@@ -1,9 +1,5 @@
 package com.lewisjkl.kafkakit
 
-import cats.Monad
-import cats.effect.{Console, Sync}
-import cats.implicits._
-
 final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[F]) {
   def listTopics: F[Unit] = kafkaClient
     .listTopics.flatMap(_.toList.traverse(Console[F].putStrLn).as(()))
