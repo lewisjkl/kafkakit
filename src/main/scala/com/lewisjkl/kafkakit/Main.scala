@@ -4,19 +4,18 @@ import cats.data.NonEmptyList
 import com.monovore.decline._
 import com.monovore.decline.effect._
 import cats.effect.Console.implicits._
+import com.lewisjkl.kafkakit.algebras.KafkaClient
+import com.lewisjkl.kafkakit.programs.{BootstrapProgram, KafkaProgram}
+import com.lewisjkl.kafkakit.algebras.ConfigLoader.deriveAskFromLoader
 
 sealed trait Choice extends Product with Serializable
 
 object Choice {
-  case object Read extends Choice
-  case object Write extends Choice
   case object ListTopics extends Choice
 
   val opts: Opts[Choice] =
     NonEmptyList.of[Opts[Choice]](
-      Opts.subcommand("read", "Read data from Kafka")(Opts(Read)),
-      Opts.subcommand("write", "Write data to Kafka")(Opts(Write)),
-      Opts.subcommand("list", "List topics in Kafka")(Opts(ListTopics))
+      Opts.subcommand("topics", "List topics in Kafka")(Opts(ListTopics))
     ).reduceK
 }
 
@@ -31,16 +30,17 @@ object Main extends CommandIOApp(
     case _ => throw new Exception
   }
 
+  val makeProgram: Resource[IO, Choice => IO[Unit]] =
+    BootstrapProgram.makeConfigLoader[IO].map { implicit configLoader =>
+      val kafka: KafkaClient[IO] = KafkaClient.live[IO]
+      implicit val kafkaProgram: KafkaProgram[IO] = KafkaProgram.live[IO](kafka)
+      runApp[IO]
+    }
+
   val mainOpts: Opts[IO[Unit]] = Choice
     .opts
     .map { choice =>
-      (for {
-        kafka <- KafkaClient.live[IO]
-        program <- KafkaProgram.live[IO](kafka)
-      } yield {
-        implicit val kafkaProgram: KafkaProgram[IO] = program
-        runApp[IO].apply(choice)
-      }).flatten
+      makeProgram.use(_.apply(choice))
     }
 
   override def main: Opts[IO[ExitCode]] = mainOpts.map(_.as(ExitCode.Success))

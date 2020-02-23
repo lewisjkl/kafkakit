@@ -15,10 +15,13 @@ inThisBuild(
 )
 
 val libraries = List(
-  "com.monovore" %% "decline-effect" % "1.0.0",
+  "co.fs2" %% "fs2-io" % "2.2.2",
   "com.github.fd4s" %% "fs2-kafka" % "1.0.0",
-  "org.typelevel" %% "cats-mtl-core" % "0.7.0",
-  "dev.profunktor" %% "console4cats" % "0.8.1"
+  "com.monovore" %% "decline-effect" % "1.0.0",
+  "dev.profunktor" %% "console4cats" % "0.8.1",
+  "io.circe" %% "circe-fs2" % "0.13.0-M1",
+  "io.circe" %% "circe-generic-extras" % "0.12.2",
+  "org.typelevel" %% "cats-mtl-core" % "0.7.0"
 )
 
 def crossPlugin(x: sbt.librarymanagement.ModuleID) = compilerPlugin(x.cross(CrossVersion.full))
