@@ -21,6 +21,7 @@ val libraries = List(
   "dev.profunktor" %% "console4cats" % "0.8.1",
   "io.circe" %% "circe-fs2" % "0.13.0-M1",
   "io.circe" %% "circe-generic-extras" % "0.12.2",
+  "io.confluent" % "kafka-avro-serializer" % "5.4.0",
   "org.typelevel" %% "cats-mtl-core" % "0.7.0"
 )
 
@@ -30,6 +31,10 @@ val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   crossPlugin("org.typelevel" %% "kind-projector" % "0.11.0"),
   crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.1")
+)
+
+val res = List(
+  "confluent" at "https://packages.confluent.io/maven/"
 )
 
 val commonSettings = Seq(
@@ -49,6 +54,7 @@ val commonSettings = Seq(
   ),
   name := "kafkakit",
   updateOptions := updateOptions.value.withGigahorse(false),
+  resolvers ++= res,
   libraryDependencies ++= libraries ++ compilerPlugins
 )
 
