@@ -20,7 +20,7 @@ object KafkaClient {
   final case class KafkaRecord(key: String, value: String)
   object KafkaRecord {
     implicit val show: Show[KafkaRecord] =
-      (t: KafkaRecord) => s"key: ${t.key}\nvalue:${t.value}\n"
+      (t: KafkaRecord) => s"${t.key}\n${t.value}\n"
   }
 
   def live[F[_]: ConcurrentEffect: Timer: ContextShift: AskForConfig]: KafkaClient[F] =
