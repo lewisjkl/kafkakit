@@ -12,10 +12,22 @@ sealed trait Choice extends Product with Serializable
 
 object Choice {
   case object ListTopics extends Choice
+  final case class HeadTopic(topicName: String, limit: Option[Int]) extends Choice
+
+  private val limitOption = Opts.option[Int](
+    "limit",
+    "limit the number of results returned",
+    "n"
+  ).orNone
+
+  private val topicNameArg = Opts.argument[String](metavar = "topicName")
 
   val opts: Opts[Choice] =
     NonEmptyList.of[Opts[Choice]](
-      Opts.subcommand("topics", "List topics in Kafka")(Opts(ListTopics))
+      Opts.subcommand("topics", "List topics in Kafka")(Opts(ListTopics)),
+      Opts.subcommand("head", "Consume a topic from the beginning") (
+        (topicNameArg, limitOption).mapN(HeadTopic)
+      )
     ).reduceK
 }
 
@@ -25,9 +37,10 @@ object Main extends CommandIOApp(
   version = "0.0.1"
 ) {
 
-  private def runApp[F[_]: KafkaProgram]: Choice => F[Unit] = {
+  private def runApp[F[_]: Sync: KafkaProgram]: Choice => F[Unit] = {
     case Choice.ListTopics => KafkaProgram[F].listTopics
-    case _ => throw new Exception
+    case Choice.HeadTopic(topicName, limit) => KafkaProgram[F].consume(topicName, limit).compile.drain
+    case _ => Sync[F].unit
   }
 
   val makeProgram: Resource[IO, Choice => IO[Unit]] =
