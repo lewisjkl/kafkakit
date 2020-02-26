@@ -43,6 +43,7 @@ object KafkaClient {
           )
             .withAutoOffsetReset(AutoOffsetReset.Earliest)
             .withBootstrapServers(config.defaultCluster.bootstrapServers.value)
+            //TODO - allow custom consumer groups
             .withGroupId("group")
         }
         for {
@@ -53,26 +54,33 @@ object KafkaClient {
         } yield stream
       }
 
-      private def getRecordDeserializer(config: Config): RecordDeserializer[F, String] =
+      private def getRecordDeserializer(config: Config): RecordDeserializer[F, String] = {
+        val getDes = getDeserializer(config.defaultCluster.schemaRegistryUrl) _
         RecordDeserializer.instance[F, String](
-          getDeserializer(config.defaultCluster.defaultKeyFormat),
-          getDeserializer(config.defaultCluster.defaultValueFormat)
+          getDes(config.defaultCluster.defaultKeyFormat),
+          getDes(config.defaultCluster.defaultValueFormat)
         )
+      }
 
-      private def getDeserializer(encodingFormat: EncodingFormat): F[Deserializer[F, String]] = Sync[F].delay {
+      private def getDeserializer(maybeSchemaRegistryUrl: Option[String])
+                                 (encodingFormat: EncodingFormat): F[Deserializer[F, String]] = Sync[F].delay {
         encodingFormat match {
           case EncodingFormat.String => Deserializer[F, String]
-          case EncodingFormat.Avro => Deserializer.delegate[F, String] {
-            new KafkaDeserializer[String] {
-              // TODO Create these somewhere else?
-              val s = new CachedSchemaRegistryClient("", 10)
-              val kad = new KafkaAvroDeserializer(s).asInstanceOf[org.apache.kafka.common.serialization.Deserializer[GenericRecord]]
-              def deserialize(topic: String, data: Array[Byte]): String = {
-                val a = kad.deserialize(topic, data)
-                a.toString
-              }
+          case EncodingFormat.Avro =>
+            maybeSchemaRegistryUrl match {
+              case Some(schemaRegistryUrl) => Deserializer.delegate[F, String] {
+                new KafkaDeserializer[String] {
+                  val s = new CachedSchemaRegistryClient(schemaRegistryUrl, 100)
+                  val kad = new KafkaAvroDeserializer(s)
+                    .asInstanceOf[org.apache.kafka.common.serialization.Deserializer[GenericRecord]]
+                  def deserialize(topic: String, data: Array[Byte]): String = {
+                    val a = kad.deserialize(topic, data)
+                    a.toString
+                  }
+                }
+              }.suspend
+              case None => Deserializer.failWith("schemaRegistryUrl must be specified in .kafkakit.json if using Avro encodingFormat")
             }
-          }.suspend
         }
       }
     }
