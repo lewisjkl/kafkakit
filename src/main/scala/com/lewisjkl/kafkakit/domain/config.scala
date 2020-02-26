@@ -47,7 +47,8 @@ object Config {
                                  nickname: String,
                                  bootstrapServers: BootstrapServers,
                                  defaultKeyFormat: EncodingFormat,
-                                 defaultValueFormat: EncodingFormat
+                                 defaultValueFormat: EncodingFormat,
+                                 schemaRegistryUrl: Option[String]
                                )
   object KafkaCluster {
     implicit val decoder: Decoder[KafkaCluster] = deriveConfiguredDecoder
