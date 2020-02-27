@@ -2,14 +2,13 @@ package com.lewisjkl.kafkakit.algebras
 
 import java.nio.file.Path
 
-import cats.mtl.{ApplicativeAsk, DefaultApplicativeAsk}
 import com.lewisjkl.kafkakit.domain.Config
 
 trait ConfigLoader[F[_]] {
   def load: F[Config]
 }
 
-object ConfigLoader extends LowPriority {
+object ConfigLoader {
 
   def apply[F[_]](implicit c: ConfigLoader[F]): ConfigLoader[F] = c
 
@@ -24,15 +23,5 @@ object ConfigLoader extends LowPriority {
           .lastOrError
     }
   }
-
-}
-
-trait LowPriority {
-
-  implicit def deriveAskFromLoader[F[_]: ConfigLoader: Applicative]: ApplicativeAsk[F, Config] =
-    new DefaultApplicativeAsk[F, Config] {
-      val applicative: Applicative[F] = Applicative[F]
-      val ask: F[Config] = ConfigLoader[F].load
-    }
 
 }
