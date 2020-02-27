@@ -11,7 +11,7 @@ import org.apache.avro.generic.GenericRecord
 trait KafkaClient[F[_]] {
   import KafkaClient._
   def listTopics: F[Set[TopicName]]
-  def consume(topicName: TopicName): fs2.Stream[F, KafkaRecord]
+  def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord]
 }
 
 object KafkaClient {
@@ -34,14 +34,14 @@ object KafkaClient {
           }
         } yield names
 
-      override def consume(topicName: TopicName): fs2.Stream[F, KafkaRecord] = {
+      override def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord] = {
         def consumerSettings(config: Config) = {
           val deserializer = getRecordDeserializer(config)
           ConsumerSettings(
             deserializer,
             deserializer
           )
-            .withAutoOffsetReset(AutoOffsetReset.Earliest)
+            .withAutoOffsetReset(if (tail) AutoOffsetReset.Latest else AutoOffsetReset.Earliest)
             .withBootstrapServers(config.defaultCluster.bootstrapServers.value)
             //TODO - allow custom consumer groups
             .withGroupId("group")
