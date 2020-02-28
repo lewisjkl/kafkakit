@@ -5,6 +5,7 @@ import com.monovore.decline._
 import com.monovore.decline.effect._
 import cats.effect.Console.implicits._
 import cats.mtl.MonadState
+import com.lewisjkl.kafkakit.Choice.AltCluster
 import com.lewisjkl.kafkakit.algebras.KafkaClient
 import com.lewisjkl.kafkakit.domain.Config
 import com.lewisjkl.kafkakit.domain.Config.KafkaCluster
@@ -16,13 +17,14 @@ import scala.util.control.NoStackTrace
 sealed trait Choice extends Product with Serializable
 
 object Choice {
-  final case class ListTopics(altClusterNickname: Option[String]) extends Choice
+  case object ListTopics extends Choice
   final case class ConsumeTopic(
                                  topicName: String,
                                  limit: Option[Int],
-                                 fromTail: Boolean,
-                                 altClusterNickname: Option[String]) extends Choice
-  final case class DeleteTopic(topicName: String, altClusterNickname: Option[String]) extends Choice
+                                 fromTail: Boolean) extends Choice
+  final case class DeleteTopic(topicName: String) extends Choice
+
+  final case class AltCluster(nickname: Option[String])
 
   private val clusterOption = Opts.option[String](
     "cluster",
@@ -44,16 +46,19 @@ object Choice {
 
   private val topicNameArg = Opts.argument[String](metavar = "topicName")
 
-  val opts: Opts[Choice] =
-    NonEmptyList.of[Opts[Choice]](
+  private def withAltCluster[A](o: Opts[A]): Opts[(AltCluster, A)] =
+    (clusterOption.map(AltCluster), o).tupled
+
+  val opts: Opts[(AltCluster, Choice)] =
+    NonEmptyList.of[Opts[(AltCluster, Choice)]](
       Opts.subcommand("topics", "List topics in Kafka")(
-        clusterOption.map(ListTopics)
+        withAltCluster(Opts(ListTopics))
       ),
       Opts.subcommand("consume", "Consume records from a topic") (
-        (topicNameArg, limitOption, tailFlag, clusterOption).mapN(ConsumeTopic)
+        withAltCluster((topicNameArg, limitOption, tailFlag).mapN(ConsumeTopic))
       ),
       Opts.subcommand("delete", "Delete a topic from Kafka")(
-        (topicNameArg, clusterOption).mapN(DeleteTopic)
+        withAltCluster((topicNameArg).map(DeleteTopic))
       )
     ).reduceK
 }
@@ -66,8 +71,8 @@ object Main extends CommandIOApp(
 
   case object KafkaClusterNotFound extends NoStackTrace
 
-  private def runApp[F[_]: Sync: KafkaProgram: MonadState[*[_], KafkaCluster]](config: Config): Choice => F[Unit] = {
-    val changeCluster: Option[String] => F[Unit] = _.map { newClusterNickname =>
+  private def runApp[F[_]: Sync: KafkaProgram: MonadState[*[_], KafkaCluster]](config: Config): (AltCluster, Choice) => F[Unit] = {
+    val changeCluster: AltCluster => F[Unit] = _.nickname.map { newClusterNickname =>
       val maybeSetNewCluster: F[Unit] = config.kafkaClusters.find(_.nickname === newClusterNickname) match {
         case Some(newCluster) => MonadState[F, KafkaCluster].set(newCluster)
         case None => Sync[F].raiseError(KafkaClusterNotFound)
@@ -75,16 +80,18 @@ object Main extends CommandIOApp(
       maybeSetNewCluster
     }.getOrElse(Sync[F].unit)
 
-    {
-      case Choice.ListTopics(altCluster) => changeCluster(altCluster) *> KafkaProgram[F].listTopics
-      case Choice.ConsumeTopic(topicName, limit, tail, altCluster) => changeCluster(altCluster) *>
-        KafkaProgram[F].consume(topicName, limit, tail).compile.drain
-      case Choice.DeleteTopic(topicName, altCluster) => changeCluster(altCluster) *>
-        KafkaProgram[F].delete(topicName)
+    def app(cluster: AltCluster, choice: Choice): F[Unit] = {
+      changeCluster(cluster) *>
+        (choice match {
+        case Choice.ListTopics => KafkaProgram[F].listTopics
+        case Choice.ConsumeTopic(topicName, limit, tail) => KafkaProgram[F].consume(topicName, limit, tail).compile.drain
+        case Choice.DeleteTopic(topicName) => KafkaProgram[F].delete(topicName)
+      })
     }
+    app
   }
 
-  val makeProgram: Resource[IO, Choice => IO[Unit]] =
+  val makeProgram: Resource[IO, (AltCluster, Choice) => IO[Unit]] =
     BootstrapProgram.makeConfigLoader[IO].flatMap { configLoader =>
       val kafkaProgram = for {
         config <- configLoader.load
@@ -100,7 +107,7 @@ object Main extends CommandIOApp(
   val mainOpts: Opts[IO[Unit]] = Choice
     .opts
     .map { choice =>
-      makeProgram.use(_.apply(choice))
+      makeProgram.use(prog => (prog.apply _).tupled(choice))
     }
 
   override def main: Opts[IO[ExitCode]] = mainOpts.map(_.as(ExitCode.Success))
