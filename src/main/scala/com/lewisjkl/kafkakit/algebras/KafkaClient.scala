@@ -1,8 +1,7 @@
 package com.lewisjkl.kafkakit.algebras
 
-import cats.mtl.ApplicativeAsk
-import com.lewisjkl.kafkakit.domain.Config
-import com.lewisjkl.kafkakit.domain.Config.{AskForConfig, EncodingFormat}
+import cats.mtl.MonadState
+import com.lewisjkl.kafkakit.domain.Config.{EncodingFormat, KafkaCluster}
 import fs2.kafka._
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
 import io.confluent.kafka.serializers.KafkaAvroDeserializer
@@ -23,42 +22,42 @@ object KafkaClient {
       (t: KafkaRecord) => s"${t.key}\n${t.value}\n"
   }
 
-  def live[F[_]: ConcurrentEffect: Timer: ContextShift: AskForConfig]: KafkaClient[F] =
+  def live[F[_]: ConcurrentEffect: Timer: ContextShift: MonadState[*[_], KafkaCluster]]: KafkaClient[F] =
     new KafkaClient[F] {
       override def listTopics: F[Set[TopicName]] =
         for {
-          config <- ApplicativeAsk[F, Config].ask
+          cluster <- MonadState[F, KafkaCluster].get
           names <- adminClientResource(AdminClientSettings[F]
-            .withBootstrapServers(config.defaultCluster.bootstrapServers.value)).use { client =>
+            .withBootstrapServers(cluster.bootstrapServers.value)).use { client =>
             client.listTopics.names
           }
         } yield names
 
       override def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord] = {
-        def consumerSettings(config: Config) = {
-          val deserializer = getRecordDeserializer(config)
+        def consumerSettings(cluster: KafkaCluster) = {
+          val deserializer = getRecordDeserializer(cluster)
           ConsumerSettings(
             deserializer,
             deserializer
           )
             .withAutoOffsetReset(if (tail) AutoOffsetReset.Latest else AutoOffsetReset.Earliest)
-            .withBootstrapServers(config.defaultCluster.bootstrapServers.value)
+            .withBootstrapServers(cluster.bootstrapServers.value)
             //TODO - allow custom consumer groups
             .withGroupId("group")
         }
         for {
-          config <- fs2.Stream.eval(ApplicativeAsk[F, Config].ask)
-          stream <- consumerStream(consumerSettings(config))
+          cluster <- fs2.Stream.eval(MonadState[F, KafkaCluster].get)
+          stream <- consumerStream(consumerSettings(cluster))
             .evalTap(_.subscribeTo(topicName))
             .flatMap(_.stream).map(r => KafkaRecord(r.record.key, r.record.value))
         } yield stream
       }
 
-      private def getRecordDeserializer(config: Config): RecordDeserializer[F, String] = {
-        val getDes = getDeserializer(config.defaultCluster.schemaRegistryUrl) _
+      private def getRecordDeserializer(cluster: KafkaCluster): RecordDeserializer[F, String] = {
+        val getDes = getDeserializer(cluster.schemaRegistryUrl) _
         RecordDeserializer.instance[F, String](
-          getDes(config.defaultCluster.defaultKeyFormat),
-          getDes(config.defaultCluster.defaultValueFormat)
+          getDes(cluster.defaultKeyFormat),
+          getDes(cluster.defaultValueFormat)
         )
       }
 

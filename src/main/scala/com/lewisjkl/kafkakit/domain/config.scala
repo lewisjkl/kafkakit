@@ -4,7 +4,6 @@ import java.lang.System
 import java.nio.file.{Path, Paths}
 
 import cats.data.NonEmptyList
-import cats.mtl.ApplicativeAsk
 import com.lewisjkl.kafkakit.domain.Config.KafkaCluster
 import io.circe.Decoder
 import io.circe.generic.extras.Configuration
@@ -20,8 +19,6 @@ final case class Config(
 }
 
 object Config {
-
-  type AskForConfig[F[_]] = ApplicativeAsk[F, Config]
 
   implicit val config = Configuration.default
 
