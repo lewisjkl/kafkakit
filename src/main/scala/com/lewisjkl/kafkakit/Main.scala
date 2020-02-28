@@ -66,7 +66,7 @@ object Choice {
 object Main extends CommandIOApp(
   name = "kafkakit",
   header = "The Kafka CLI You've Always Wanted",
-  version = "0.0.1"
+  version = "0.0.2"
 ) {
 
   case object KafkaClusterNotFound extends NoStackTrace
