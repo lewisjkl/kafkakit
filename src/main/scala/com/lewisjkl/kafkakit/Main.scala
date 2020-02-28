@@ -22,6 +22,7 @@ object Choice {
                                  limit: Option[Int],
                                  fromTail: Boolean,
                                  altClusterNickname: Option[String]) extends Choice
+  final case class DeleteTopic(topicName: String, altClusterNickname: Option[String]) extends Choice
 
   private val clusterOption = Opts.option[String](
     "cluster",
@@ -50,6 +51,9 @@ object Choice {
       ),
       Opts.subcommand("consume", "Consume records from a topic") (
         (topicNameArg, limitOption, tailFlag, clusterOption).mapN(ConsumeTopic)
+      ),
+      Opts.subcommand("delete", "Delete a topic from Kafka")(
+        (topicNameArg, clusterOption).mapN(DeleteTopic)
       )
     ).reduceK
 }
@@ -75,7 +79,8 @@ object Main extends CommandIOApp(
       case Choice.ListTopics(altCluster) => changeCluster(altCluster) *> KafkaProgram[F].listTopics
       case Choice.ConsumeTopic(topicName, limit, tail, altCluster) => changeCluster(altCluster) *>
         KafkaProgram[F].consume(topicName, limit, tail).compile.drain
-      case _ => Sync[F].unit
+      case Choice.DeleteTopic(topicName, altCluster) => changeCluster(altCluster) *>
+        KafkaProgram[F].delete(topicName)
     }
   }
 

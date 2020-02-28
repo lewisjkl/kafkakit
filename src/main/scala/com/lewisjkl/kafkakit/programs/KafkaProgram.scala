@@ -17,6 +17,9 @@ final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[
       case None => consume_
     }
   }
+
+  def delete(topicName: TopicName): F[Unit] =
+    kafkaClient.deleteTopic(topicName)
 }
 
 object KafkaProgram {

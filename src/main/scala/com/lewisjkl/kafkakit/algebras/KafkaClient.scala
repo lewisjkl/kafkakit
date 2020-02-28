@@ -11,6 +11,7 @@ trait KafkaClient[F[_]] {
   import KafkaClient._
   def listTopics: F[Set[TopicName]]
   def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord]
+  def deleteTopic(topicName: TopicName): F[Unit]
 }
 
 object KafkaClient {
@@ -24,11 +25,17 @@ object KafkaClient {
 
   def live[F[_]: ConcurrentEffect: Timer: ContextShift: MonadState[*[_], KafkaCluster]]: KafkaClient[F] =
     new KafkaClient[F] {
+
+      private def getAdminClientResource =
+        for {
+          cluster <- Resource.liftF(MonadState[F, KafkaCluster].get)
+          res <- adminClientResource(AdminClientSettings[F]
+            .withBootstrapServers(cluster.bootstrapServers.value))
+        } yield res
+
       override def listTopics: F[Set[TopicName]] =
         for {
-          cluster <- MonadState[F, KafkaCluster].get
-          names <- adminClientResource(AdminClientSettings[F]
-            .withBootstrapServers(cluster.bootstrapServers.value)).use { client =>
+          names <- getAdminClientResource.use { client =>
             client.listTopics.names
           }
         } yield names
@@ -82,6 +89,9 @@ object KafkaClient {
             }
         }
       }
+
+      override def deleteTopic(topicName: TopicName): F[Unit] =
+        getAdminClientResource.use(_.deleteTopic(topicName))
     }
 
 }
