@@ -26,6 +26,7 @@ object Choice {
   final case class DescribeTopic(topicName: String) extends Choice
   case object ListConsumerGroup extends Choice
   final case class ListConsumerGroupOffsets(consumerGroup: String) extends Choice
+  final case class GetLatestOffsets(topicName: String) extends Choice
 
   final case class AltCluster(nickname: Option[String])
 
@@ -73,6 +74,9 @@ object Choice {
       ),
       Opts.subcommand("offsets", "List offsets for a consumer group")(
         withAltCluster((consumerGroupNameArg).map(ListConsumerGroupOffsets))
+      ),
+      Opts.subcommand("latest-offsets", "List the latest offsets of a topic")(
+        withAltCluster((topicNameArg).map(GetLatestOffsets))
       )
     ).reduceK
 }
@@ -103,6 +107,7 @@ object Main extends CommandIOApp(
         case Choice.DescribeTopic(topicName) => KafkaProgram[F].describe(topicName)
         case Choice.ListConsumerGroup => KafkaProgram[F].listConsumerGroups
         case Choice.ListConsumerGroupOffsets(group) => KafkaProgram[F].listConsumerGroupOffsets(group)
+        case Choice.GetLatestOffsets(topicName) => KafkaProgram[F].listLatestOffsets(topicName)
       })
     }
     app

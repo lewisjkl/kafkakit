@@ -17,6 +17,7 @@ trait KafkaClient[F[_]] {
   def deleteTopic(topicName: TopicName): F[Unit]
   def listConsumerGroups: F[Set[ConsumerGroup]]
   def listConsumerGroupOffsets(consumerGroup: ConsumerGroup): F[Map[TopicAndPartition, Offset]]
+  def getLatestOffsets(topicName: TopicName): F[Map[TopicAndPartition, Offset]]
 }
 
 object KafkaClient {
@@ -58,11 +59,15 @@ object KafkaClient {
   type ConsumerGroup = String
   type Offset = Long
 
-  final case class TopicAndPartition(topicName: TopicName, partition: Int)
+  final case class TopicAndPartition(topicName: TopicName, partition: Int) {
+    def toJava: TopicPartition = new TopicPartition(topicName, partition)
+  }
   object TopicAndPartition {
     implicit val show: Show[TopicAndPartition] = (t: TopicAndPartition) => s"topic: ${t.topicName} partition: ${t.partition}"
     def create(t: TopicPartition): TopicAndPartition =
       TopicAndPartition(t.topic, t.partition)
+    def create(topicName: TopicName, p: Partition): TopicAndPartition =
+      TopicAndPartition(topicName, p.partition)
   }
 
   def live[F[_]: ConcurrentEffect: Timer: ContextShift: MonadState[*[_], KafkaCluster]]: KafkaClient[F] =
@@ -75,20 +80,7 @@ object KafkaClient {
             .withBootstrapServers(cluster.bootstrapServers.value))
         } yield res
 
-      override def listTopics: F[Set[TopicName]] =
-        for {
-          names <- getAdminClientResource.use { client =>
-            client.listTopics.names
-          }
-        } yield names
-
-      override def describeTopic(topicName: TopicName): F[Option[Topic]] =
-        getAdminClientResource.use(_.describeTopics(List(topicName))
-          .map(_.get(topicName).map(Topic.create))).recover {
-          case _: org.apache.kafka.common.errors.UnknownTopicOrPartitionException => None
-        }
-
-      override def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord] = {
+      private def getConsumerStream(tail: Boolean = false): fs2.Stream[F, KafkaConsumer[F, String, String]] = {
         def consumerSettings(cluster: KafkaCluster) = {
           val deserializer = getRecordDeserializer(cluster)
           ConsumerSettings(
@@ -103,10 +95,26 @@ object KafkaClient {
         for {
           cluster <- fs2.Stream.eval(MonadState[F, KafkaCluster].get)
           stream <- consumerStream(consumerSettings(cluster))
-            .evalTap(_.subscribeTo(topicName))
-            .flatMap(_.stream).map(r => KafkaRecord(r.record.key, r.record.value))
         } yield stream
       }
+
+      override def listTopics: F[Set[TopicName]] =
+        for {
+          names <- getAdminClientResource.use { client =>
+            client.listTopics.names
+          }
+        } yield names
+
+      override def describeTopic(topicName: TopicName): F[Option[Topic]] =
+        getAdminClientResource.use(_.describeTopics(List(topicName))
+          .map(_.get(topicName).map(Topic.create))).recover {
+          case _: org.apache.kafka.common.errors.UnknownTopicOrPartitionException => None
+        }
+
+      override def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord] =
+        getConsumerStream(tail)
+          .evalTap(_.subscribeTo(topicName))
+          .flatMap(_.stream).map(r => KafkaRecord(r.record.key, r.record.value))
 
       private def getRecordDeserializer(cluster: KafkaCluster): RecordDeserializer[F, String] = {
         val getDes = getDeserializer(cluster.schemaRegistryUrl) _
@@ -148,6 +156,13 @@ object KafkaClient {
         getAdminClientResource.use(_.listConsumerGroupOffsets(consumerGroup).partitionsToOffsetAndMetadata.map(_.map {
           case (k, v) => (TopicAndPartition.create(k), v.offset)
         }))
+
+      override def getLatestOffsets(topicName: TopicName): F[Map[TopicAndPartition, Offset]] =
+        (for {
+          topic <- fs2.Stream.eval(describeTopic(topicName))
+          partitions = topic.map(t => t.partitions.map(TopicAndPartition.create(t.topicName, _).toJava)).getOrElse(List.empty)
+          end <- getConsumerStream().evalMap(_.endOffsets(partitions.toSet))
+        } yield end.map(i => (TopicAndPartition.create(i._1), i._2))).compile.lastOrError
     }
 
 }

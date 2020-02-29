@@ -1,7 +1,7 @@
 package com.lewisjkl.kafkakit.programs
 
 import com.lewisjkl.kafkakit.algebras.KafkaClient
-import com.lewisjkl.kafkakit.algebras.KafkaClient.{ConsumerGroup, TopicName}
+import com.lewisjkl.kafkakit.algebras.KafkaClient.{ConsumerGroup, Offset, TopicAndPartition, TopicName}
 
 final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[F]) {
   def listTopics: F[Unit] = kafkaClient
@@ -32,9 +32,16 @@ final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[
     kafkaClient.listConsumerGroups
       .flatMap(_.toList.sorted.traverse(Console[F].putStrLn).as(()))
 
+  private def printOffsets(o: Map[TopicAndPartition, Offset]): F[Unit] =
+    o.toList.sortBy(_._1.partition).traverse(o => Console[F].putStrLn(show"${o._1} offset: ${o._2}")).as(())
+
   def listConsumerGroupOffsets(consumerGroup: ConsumerGroup): F[Unit] =
-    kafkaClient.listConsumerGroupOffsets(consumerGroup)
-      .flatMap(_.toList.traverse(o => Console[F].putStrLn(show"${o._1} offset: ${o._2}")).as(()))
+    kafkaClient.listConsumerGroupOffsets(consumerGroup).flatMap(printOffsets)
+
+
+  def listLatestOffsets(topicName: TopicName): F[Unit] =
+    kafkaClient.getLatestOffsets(topicName).flatMap(printOffsets)
+
 }
 
 object KafkaProgram {
