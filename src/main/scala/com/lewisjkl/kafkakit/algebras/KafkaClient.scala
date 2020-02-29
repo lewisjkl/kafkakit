@@ -15,6 +15,7 @@ trait KafkaClient[F[_]] {
   def describeTopic(topicName: TopicName): F[Option[Topic]]
   def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord]
   def deleteTopic(topicName: TopicName): F[Unit]
+  def listConsumerGroups: F[Set[ConsumerGroup]]
 }
 
 object KafkaClient {
@@ -52,6 +53,8 @@ object KafkaClient {
       Topic(t.name, t.partitions.asScala.map(Partition.create).toList)
     }
   }
+
+  type ConsumerGroup = String
 
   def live[F[_]: ConcurrentEffect: Timer: ContextShift: MonadState[*[_], KafkaCluster]]: KafkaClient[F] =
     new KafkaClient[F] {
@@ -128,6 +131,9 @@ object KafkaClient {
 
       override def deleteTopic(topicName: TopicName): F[Unit] =
         getAdminClientResource.use(_.deleteTopic(topicName))
+
+      override def listConsumerGroups: F[Set[ConsumerGroup]] =
+        getAdminClientResource.use(_.listConsumerGroups.groupIds.map(_.toSet))
     }
 
 }

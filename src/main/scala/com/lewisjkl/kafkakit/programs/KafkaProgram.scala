@@ -27,6 +27,11 @@ final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[
 
   def delete(topicName: TopicName): F[Unit] =
     kafkaClient.deleteTopic(topicName)
+
+  def listConsumerGroups: F[Unit] =
+    kafkaClient.listConsumerGroups
+      .flatMap(_.toList.sorted.traverse(Console[F].putStrLn).as(()))
+
 }
 
 object KafkaProgram {
