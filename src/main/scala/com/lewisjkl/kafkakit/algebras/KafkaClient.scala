@@ -72,7 +72,9 @@ object KafkaClient {
 
       override def describeTopic(topicName: TopicName): F[Option[Topic]] =
         getAdminClientResource.use(_.describeTopics(List(topicName))
-          .map(_.get(topicName).map(Topic.create)))
+          .map(_.get(topicName).map(Topic.create))).recover {
+          case _: org.apache.kafka.common.errors.UnknownTopicOrPartitionException => None
+        }
 
       override def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord] = {
         def consumerSettings(cluster: KafkaCluster) = {
