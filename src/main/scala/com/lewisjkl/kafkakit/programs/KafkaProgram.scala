@@ -18,6 +18,13 @@ final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[
     }
   }
 
+  def describe(topicName: TopicName): F[Unit] = {
+    kafkaClient.describeTopic(topicName).flatMap {
+      case Some(desc) => Console[F].putStrLn(desc)
+      case None => Console[F].putStrLn(s"$topicName not found.")
+    }
+  }
+
   def delete(topicName: TopicName): F[Unit] =
     kafkaClient.deleteTopic(topicName)
 }

@@ -23,6 +23,7 @@ object Choice {
                                  limit: Option[Int],
                                  fromTail: Boolean) extends Choice
   final case class DeleteTopic(topicName: String) extends Choice
+  final case class DescribeTopic(topicName: String) extends Choice
 
   final case class AltCluster(nickname: Option[String])
 
@@ -59,6 +60,9 @@ object Choice {
       ),
       Opts.subcommand("delete", "Delete a topic from Kafka")(
         withAltCluster((topicNameArg).map(DeleteTopic))
+      ),
+      Opts.subcommand("describe", "Describe a topic in Kafka")(
+        withAltCluster((topicNameArg).map(DescribeTopic))
       )
     ).reduceK
 }
@@ -86,6 +90,7 @@ object Main extends CommandIOApp(
         case Choice.ListTopics => KafkaProgram[F].listTopics
         case Choice.ConsumeTopic(topicName, limit, tail) => KafkaProgram[F].consume(topicName, limit, tail).compile.drain
         case Choice.DeleteTopic(topicName) => KafkaProgram[F].delete(topicName)
+        case Choice.DescribeTopic(topicName) => KafkaProgram[F].describe(topicName)
       })
     }
     app
