@@ -25,6 +25,7 @@ object Choice {
   final case class DeleteTopic(topicName: String) extends Choice
   final case class DescribeTopic(topicName: String) extends Choice
   case object ListConsumerGroup extends Choice
+  final case class ListConsumerGroupOffsets(consumerGroup: String) extends Choice
 
   final case class AltCluster(nickname: Option[String])
 
@@ -48,6 +49,8 @@ object Choice {
 
   private val topicNameArg = Opts.argument[String](metavar = "topicName")
 
+  private val consumerGroupNameArg = Opts.argument[String](metavar = "consumerGroup")
+
   private def withAltCluster[A](o: Opts[A]): Opts[(AltCluster, A)] =
     (clusterOption.map(AltCluster), o).tupled
 
@@ -67,6 +70,9 @@ object Choice {
       ),
       Opts.subcommand("consumers", "List all consumer groups")(
         withAltCluster(Opts(ListConsumerGroup))
+      ),
+      Opts.subcommand("offsets", "List offsets for a consumer group")(
+        withAltCluster((consumerGroupNameArg).map(ListConsumerGroupOffsets))
       )
     ).reduceK
 }
@@ -96,6 +102,7 @@ object Main extends CommandIOApp(
         case Choice.DeleteTopic(topicName) => KafkaProgram[F].delete(topicName)
         case Choice.DescribeTopic(topicName) => KafkaProgram[F].describe(topicName)
         case Choice.ListConsumerGroup => KafkaProgram[F].listConsumerGroups
+        case Choice.ListConsumerGroupOffsets(group) => KafkaProgram[F].listConsumerGroupOffsets(group)
       })
     }
     app

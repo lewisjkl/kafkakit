@@ -1,7 +1,7 @@
 package com.lewisjkl.kafkakit.programs
 
 import com.lewisjkl.kafkakit.algebras.KafkaClient
-import com.lewisjkl.kafkakit.algebras.KafkaClient.TopicName
+import com.lewisjkl.kafkakit.algebras.KafkaClient.{ConsumerGroup, TopicName}
 
 final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[F]) {
   def listTopics: F[Unit] = kafkaClient
@@ -32,6 +32,9 @@ final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[
     kafkaClient.listConsumerGroups
       .flatMap(_.toList.sorted.traverse(Console[F].putStrLn).as(()))
 
+  def listConsumerGroupOffsets(consumerGroup: ConsumerGroup): F[Unit] =
+    kafkaClient.listConsumerGroupOffsets(consumerGroup)
+      .flatMap(_.toList.traverse(o => Console[F].putStrLn(show"${o._1} offset: ${o._2}")).as(()))
 }
 
 object KafkaProgram {

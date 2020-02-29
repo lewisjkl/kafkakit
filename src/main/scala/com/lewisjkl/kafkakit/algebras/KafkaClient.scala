@@ -7,7 +7,7 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
 import io.confluent.kafka.serializers.KafkaAvroDeserializer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.admin.TopicDescription
-import org.apache.kafka.common.{Node, TopicPartitionInfo}
+import org.apache.kafka.common.{Node, TopicPartition, TopicPartitionInfo}
 
 trait KafkaClient[F[_]] {
   import KafkaClient._
@@ -16,6 +16,7 @@ trait KafkaClient[F[_]] {
   def consume(topicName: TopicName, tail: Boolean): fs2.Stream[F, KafkaRecord]
   def deleteTopic(topicName: TopicName): F[Unit]
   def listConsumerGroups: F[Set[ConsumerGroup]]
+  def listConsumerGroupOffsets(consumerGroup: ConsumerGroup): F[Map[TopicAndPartition, Offset]]
 }
 
 object KafkaClient {
@@ -55,6 +56,14 @@ object KafkaClient {
   }
 
   type ConsumerGroup = String
+  type Offset = Long
+
+  final case class TopicAndPartition(topicName: TopicName, partition: Int)
+  object TopicAndPartition {
+    implicit val show: Show[TopicAndPartition] = (t: TopicAndPartition) => s"topic: ${t.topicName} partition: ${t.partition}"
+    def create(t: TopicPartition): TopicAndPartition =
+      TopicAndPartition(t.topic, t.partition)
+  }
 
   def live[F[_]: ConcurrentEffect: Timer: ContextShift: MonadState[*[_], KafkaCluster]]: KafkaClient[F] =
     new KafkaClient[F] {
@@ -134,6 +143,11 @@ object KafkaClient {
 
       override def listConsumerGroups: F[Set[ConsumerGroup]] =
         getAdminClientResource.use(_.listConsumerGroups.groupIds.map(_.toSet))
+
+      override def listConsumerGroupOffsets(consumerGroup: ConsumerGroup): F[Map[TopicAndPartition, Offset]] =
+        getAdminClientResource.use(_.listConsumerGroupOffsets(consumerGroup).partitionsToOffsetAndMetadata.map(_.map {
+          case (k, v) => (TopicAndPartition.create(k), v.offset)
+        }))
     }
 
 }
