@@ -1,7 +1,11 @@
 # KafkaKit
 *The Kafka CLI you've always wanted.*
 
-Okay, actually this isn't the CLI you've always wanted.. yet. This project is in the early stages of development and as such everything is subject to change. If you have any feedback then please feel free to open an issue or PR.
+## Installation
+
+```bash
+coursier bootstrap -r https://packages.confluent.io/maven/ com.lewisjkl:kafkakit_2.13:0.0.3 -o kafkakit
+```
 
 ## Credits
 
