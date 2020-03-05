@@ -9,7 +9,7 @@ import com.lewisjkl.kafkakit.Choice.AltCluster
 import com.lewisjkl.kafkakit.algebras.KafkaClient
 import com.lewisjkl.kafkakit.domain.Config
 import com.lewisjkl.kafkakit.domain.Config.KafkaCluster
-import com.lewisjkl.kafkakit.programs.{BootstrapProgram, KafkaProgram}
+import com.lewisjkl.kafkakit.programs.{BootstrapProgram, ConfigProgram, KafkaProgram}
 import com.olegpy.meow.effects._
 
 import scala.util.control.NoStackTrace
@@ -29,6 +29,8 @@ object Choice {
   final case class GetLatestOffsets(topicName: String) extends Choice
 
   final case class AltCluster(nickname: Option[String])
+
+  case object PrintConfig extends Choice
 
   private val clusterOption = Opts.option[String](
     "cluster",
@@ -77,6 +79,9 @@ object Choice {
       ),
       Opts.subcommand("latest-offsets", "List the latest offsets of a topic")(
         withAltCluster((topicNameArg).map(GetLatestOffsets))
+      ),
+      Opts.subcommand("config", "Prints out your current config")(
+        (Opts(AltCluster(None)), Opts(PrintConfig)).tupled
       )
     ).reduceK
 }
@@ -89,7 +94,7 @@ object Main extends CommandIOApp(
 
   case object KafkaClusterNotFound extends NoStackTrace
 
-  private def runApp[F[_]: Sync: KafkaProgram: MonadState[*[_], KafkaCluster]](config: Config): (AltCluster, Choice) => F[Unit] = {
+  private def runApp[F[_]: Sync: KafkaProgram: ConfigProgram: MonadState[*[_], KafkaCluster]](config: Config): (AltCluster, Choice) => F[Unit] = {
     val changeCluster: AltCluster => F[Unit] = _.nickname.map { newClusterNickname =>
       val maybeSetNewCluster: F[Unit] = config.kafkaClusters.find(_.nickname === newClusterNickname) match {
         case Some(newCluster) => MonadState[F, KafkaCluster].set(newCluster)
@@ -108,6 +113,7 @@ object Main extends CommandIOApp(
         case Choice.ListConsumerGroup => KafkaProgram[F].listConsumerGroups
         case Choice.ListConsumerGroupOffsets(group) => KafkaProgram[F].listConsumerGroupOffsets(group)
         case Choice.GetLatestOffsets(topicName) => KafkaProgram[F].listLatestOffsets(topicName)
+        case Choice.PrintConfig => ConfigProgram[F].outputConfig
       })
     }
     app
@@ -120,6 +126,7 @@ object Main extends CommandIOApp(
         ref <- Ref[IO].of(config.defaultCluster)
         kafka <- ref.runState { implicit monadState =>
           implicit val kafkaProgram: KafkaProgram[IO] = KafkaProgram.live[IO](KafkaClient.live[IO])
+          implicit val configProgram: ConfigProgram[IO] = ConfigProgram.live[IO](config)
           IO(runApp[IO](config))
         }
       } yield kafka
