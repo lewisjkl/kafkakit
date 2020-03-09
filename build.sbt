@@ -24,7 +24,7 @@ val libraries = List(
   "io.circe" %% "circe-fs2" % "0.13.0",
   "io.circe" %% "circe-generic-extras" % "0.13.0",
   "io.confluent" % "kafka-avro-serializer" % "5.4.1",
-  "org.typelevel" %% "cats-mtl-core" % "0.7.0"
+  "org.typelevel" %% "cats-mtl-core" % "0.7.1"
 )
 
 def crossPlugin(x: sbt.librarymanagement.ModuleID) = compilerPlugin(x.cross(CrossVersion.full))
