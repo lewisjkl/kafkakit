@@ -23,7 +23,7 @@ val libraries = List(
   "dev.profunktor" %% "console4cats" % "0.8.1",
   "io.circe" %% "circe-fs2" % "0.13.0",
   "io.circe" %% "circe-generic-extras" % "0.13.0",
-  "io.confluent" % "kafka-avro-serializer" % "5.5.0",
+  "io.confluent" % "kafka-avro-serializer" % "5.4.2",
   "org.typelevel" %% "cats-mtl-core" % "0.7.1"
 )
 
@@ -32,7 +32,7 @@ def crossPlugin(x: sbt.librarymanagement.ModuleID) = compilerPlugin(x.cross(Cros
 val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   crossPlugin("org.typelevel" %% "kind-projector" % "0.11.0"),
-  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.2")
+  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.3")
 )
 
 val res = List(
