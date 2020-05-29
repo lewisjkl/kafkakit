@@ -137,7 +137,7 @@ object KafkaClient {
                     .asInstanceOf[org.apache.kafka.common.serialization.Deserializer[GenericRecord]]
                   def deserialize(topic: String, data: Array[Byte]): String = {
                     val a = kad.deserialize(topic, data)
-                    a.toString
+                    Option(a).map(_.toString).getOrElse("null")
                   }
                 }
               }.suspend
