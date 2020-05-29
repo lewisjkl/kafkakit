@@ -5,9 +5,9 @@ import java.nio.file.{Path, Paths}
 
 import cats.data.NonEmptyList
 import com.lewisjkl.kafkakit.domain.Config.KafkaCluster
-import io.circe.Decoder
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto._
+import io.circe.{Codec, Encoder}
 
 final case class Config(
                          kafkaClusters: NonEmptyList[KafkaCluster],
@@ -22,14 +22,16 @@ object Config {
 
   implicit val config = Configuration.default
 
-  implicit val decoder: Decoder[Config] = deriveConfiguredDecoder[Config]
+  implicit val codec: Codec[Config] = deriveConfiguredCodec
+
+  implicit val showConfig: Show[Config] = Encoder[Config].apply(_).spaces2
 
   val defaultPath: Path = Paths.get(System.getProperty("user.home")).resolve(".kafkakit.json")
 
   // TODO - Add smart constructor w/validation for BootstrapServers
   final case class BootstrapServers(value: String) extends AnyVal
   object BootstrapServers {
-    implicit val decoder: Decoder[BootstrapServers] = deriveUnwrappedDecoder
+    implicit val codec: Codec[BootstrapServers] = deriveUnwrappedCodec
   }
 
   sealed trait EncodingFormat extends Product with Serializable
@@ -37,7 +39,7 @@ object Config {
     final case object String extends EncodingFormat
     final case object Avro extends EncodingFormat
 
-    implicit val decoder: Decoder[EncodingFormat] = deriveEnumerationDecoder
+    implicit val codec: Codec[EncodingFormat] = deriveEnumerationCodec
   }
 
   final case class KafkaCluster(
@@ -48,7 +50,7 @@ object Config {
                                  schemaRegistryUrl: Option[String]
                                )
   object KafkaCluster {
-    implicit val decoder: Decoder[KafkaCluster] = deriveConfiguredDecoder
+    implicit val codec: Codec[KafkaCluster] = deriveConfiguredCodec
   }
 
 }
