@@ -4,7 +4,7 @@
 ## Installation
 
 ```bash
-coursier bootstrap -r https://packages.confluent.io/maven/ com.lewisjkl:kafkakit_2.13:0.0.4 -o kafkakit
+coursier bootstrap -r https://packages.confluent.io/maven/ com.lewisjkl:kafkakit_2.13:0.0.5 -o kafkakit
 ```
 
 ## Credits
