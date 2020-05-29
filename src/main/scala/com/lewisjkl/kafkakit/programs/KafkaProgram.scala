@@ -3,13 +3,15 @@ package com.lewisjkl.kafkakit.programs
 import com.lewisjkl.kafkakit.algebras.KafkaClient
 import com.lewisjkl.kafkakit.algebras.KafkaClient.{ConsumerGroup, Offset, TopicAndPartition, TopicName}
 
+import scala.util.control.NonFatal
+
 final class KafkaProgram[F[_]: Monad: Console] private(kafkaClient: KafkaClient[F]) {
   def listTopics: F[Unit] = kafkaClient
     .listTopics.flatMap(_.toList.sorted.traverse(Console[F].putStrLn).as(()))
 
   def consume(topicName: TopicName, limit: Option[Int], tail: Boolean): fs2.Stream[F, Unit] = {
     val consume_ = kafkaClient.consume(topicName, tail).evalMap(Console[F].putStrLn(_)).handleErrorWith {
-      case k: org.apache.kafka.common.KafkaException => fs2.Stream.eval(Console[F].putStrLn(k.getMessage))
+      case NonFatal(e) => fs2.Stream.eval(Console[F].putStrLn(e.getMessage))
     }
 
     limit match {
