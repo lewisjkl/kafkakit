@@ -19,7 +19,7 @@ val libraries = List(
   "co.fs2" %% "fs2-io" % "2.4.2",
   "com.github.fd4s" %% "fs2-kafka" % "1.0.0",
   "com.monovore" %% "decline-effect" % "1.2.0",
-  "com.olegpy" %% "meow-mtl-effects" % "0.4.0",
+  "com.olegpy" %% "meow-mtl-effects" % "0.4.1",
   "dev.profunktor" %% "console4cats" % "0.8.1",
   "io.circe" %% "circe-fs2" % "0.13.0",
   "io.circe" %% "circe-generic-extras" % "0.13.0",
