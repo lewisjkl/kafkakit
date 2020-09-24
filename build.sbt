@@ -23,7 +23,7 @@ val libraries = List(
   "dev.profunktor" %% "console4cats" % "0.8.1",
   "io.circe" %% "circe-fs2" % "0.13.0",
   "io.circe" %% "circe-generic-extras" % "0.13.0",
-  "io.confluent" % "kafka-avro-serializer" % "5.5.1",
+  "io.confluent" % "kafka-avro-serializer" % "6.0.0",
   "org.typelevel" %% "cats-mtl-core" % "0.7.1"
 )
 
