@@ -16,8 +16,8 @@ inThisBuild(
 
 val libraries = List(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
-  "co.fs2" %% "fs2-io" % "2.4.5",
-  "com.github.fd4s" %% "fs2-kafka" % "1.1.0",
+  "co.fs2" %% "fs2-io" % "2.4.6",
+  "com.github.fd4s" %% "fs2-kafka" % "1.0.0",
   "com.monovore" %% "decline-effect" % "1.3.0",
   "com.olegpy" %% "meow-mtl-effects" % "0.4.1",
   "dev.profunktor" %% "console4cats" % "0.8.1",
@@ -31,8 +31,8 @@ def crossPlugin(x: sbt.librarymanagement.ModuleID) = compilerPlugin(x.cross(Cros
 
 val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-  crossPlugin("org.typelevel" %% "kind-projector" % "0.11.0"),
-  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.5")
+  crossPlugin("org.typelevel" %% "kind-projector" % "0.11.1"),
+  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.6")
 )
 
 val res = List(
