@@ -40,7 +40,7 @@ val res = List(
 )
 
 val commonSettings = Seq(
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.4",
   scalacOptions -= "-Xfatal-warnings",
   scalacOptions ++= Seq(
     "-Ymacro-annotations",
