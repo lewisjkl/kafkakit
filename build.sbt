@@ -18,7 +18,7 @@ val libraries = List(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "co.fs2" %% "fs2-io" % "2.4.6",
   "com.github.fd4s" %% "fs2-kafka" % "1.0.0",
-  "com.monovore" %% "decline-effect" % "1.3.0",
+  "com.monovore" %% "decline-effect" % "1.4.0",
   "com.olegpy" %% "meow-mtl-effects" % "0.4.1",
   "dev.profunktor" %% "console4cats" % "0.8.1",
   "io.circe" %% "circe-fs2" % "0.13.0",
