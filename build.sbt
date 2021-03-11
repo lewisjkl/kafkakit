@@ -32,7 +32,7 @@ def crossPlugin(x: sbt.librarymanagement.ModuleID) = compilerPlugin(x.cross(Cros
 val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   crossPlugin("org.typelevel" %% "kind-projector" % "0.11.3"),
-  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.7")
+  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.8")
 )
 
 val res = List(
@@ -40,7 +40,7 @@ val res = List(
 )
 
 val commonSettings = Seq(
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.4",
   scalacOptions -= "-Xfatal-warnings",
   scalacOptions ++= Seq(
     "-Ymacro-annotations",
