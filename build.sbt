@@ -16,7 +16,7 @@ inThisBuild(
 
 val libraries = List(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
-  "co.fs2" %% "fs2-io" % "2.4.6",
+  "co.fs2" %% "fs2-io" % "2.5.8",
   "com.github.fd4s" %% "fs2-kafka" % "1.0.0",
   "com.monovore" %% "decline-effect" % "1.3.0",
   "com.olegpy" %% "meow-mtl-effects" % "0.4.1",
