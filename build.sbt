@@ -21,7 +21,7 @@ val libraries = List(
   "com.monovore" %% "decline-effect" % "1.3.0",
   "com.olegpy" %% "meow-mtl-effects" % "0.4.1",
   "dev.profunktor" %% "console4cats" % "0.8.1",
-  "io.circe" %% "circe-fs2" % "0.13.0",
+  "io.circe" %% "circe-fs2" % "0.14.1",
   "io.circe" %% "circe-generic-extras" % "0.13.0",
   "io.confluent" % "kafka-avro-serializer" % "5.5.4",
   "org.typelevel" %% "cats-mtl-core" % "0.7.1"
