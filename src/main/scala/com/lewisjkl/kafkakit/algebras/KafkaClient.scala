@@ -8,6 +8,7 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.{Node, TopicPartition, TopicPartitionInfo}
+import fs2.kafka.{ KafkaAdminClient, KafkaConsumer }
 
 trait KafkaClient[F[_]] {
   import KafkaClient._
@@ -76,7 +77,7 @@ object KafkaClient {
       private def getAdminClientResource =
         for {
           cluster <- Resource.liftF(MonadState[F, KafkaCluster].get)
-          res <- adminClientResource(AdminClientSettings[F]
+          res <- KafkaAdminClient.resource(AdminClientSettings[F]
             .withBootstrapServers(cluster.bootstrapServers.value))
         } yield res
 
@@ -94,7 +95,7 @@ object KafkaClient {
         }
         for {
           cluster <- fs2.Stream.eval(MonadState[F, KafkaCluster].get)
-          stream <- consumerStream(consumerSettings(cluster))
+          stream <- KafkaConsumer.stream(consumerSettings(cluster))
         } yield stream
       }
 
